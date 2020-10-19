@@ -176,6 +176,7 @@ void PlayMode::update(float elapsed) {
 				//rotate step to follow surface:
 				remain = rotation * remain;
 			} else {
+				std::cout << "Wall" << std::endl;
 				//ran into a wall, bounce / slide along it:
 				glm::vec3 const &a = walkmesh->vertices[player.at.indices.x];
 				glm::vec3 const &b = walkmesh->vertices[player.at.indices.y];
