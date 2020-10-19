@@ -24,7 +24,8 @@ struct PlayMode : Mode {
 		uint8_t downs = 0;
 		uint8_t pressed = 0;
 	} left, right, down, up;
-
+	bool is_prev_left = false;
+	bool curr_moved = false;
 	//local copy of the game scene (so code can change it during gameplay):
 	Scene scene;
 
