@@ -147,6 +147,7 @@ void WalkMesh::walk_in_triangle(WalkPoint const &start, glm::vec3 const &step, W
 	time = 1.0f;
 	end.indices = start.indices;
 	end.weights = step_coords;
+	// Can finish within the triangle.
 	if (step_coords.x >= 0.0f && step_coords.y >= 0.0f &&  step_coords.z >= 0.0f) {
 		return;
 	}
@@ -158,7 +159,7 @@ void WalkMesh::walk_in_triangle(WalkPoint const &start, glm::vec3 const &step, W
 	glm::vec3 time_vec = -start.weights / v;
 	int min_idx = -1;
 	for (int i = 0; i < 3; i++) {
-		if (time_vec[i] >= 0.0f && time_vec[i] < time) {
+		if (time_vec[i] > 0.0f && time_vec[i] < time) {
 			time = time_vec[i];
 			min_idx = i;
 		}
@@ -208,7 +209,7 @@ bool WalkMesh::cross_edge(WalkPoint const &start, WalkPoint *end_, glm::quat *ro
 	auto &rotation = *rotation_;
 
 	assert(start.weights.z == 0.0f); //*must* be on an edge.
-	glm::uvec2 edge = glm::uvec2(start.indices);
+	glm::uvec2 edge = glm::uvec2(start.indices.y, start.indices.x);
 	end = start;
 	//check if 'edge' is a non-boundary edge:
 	auto it_next_vtx = next_vertex.find(edge);
