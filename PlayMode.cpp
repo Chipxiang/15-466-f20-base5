@@ -44,10 +44,44 @@ Load< WalkMeshes > phonebank_walkmeshes(LoadTagDefault, []() -> WalkMeshes const
 	return ret;
 	});
 
+
+void PlayMode::switch_foot() {
+	if (is_prev_left) {
+		Mesh const& player_mesh = phonebank_meshes->lookup("Player_left");
+		player_drawable->pipeline.type = player_mesh.type;
+		player_drawable->pipeline.start = player_mesh.start;
+		player_drawable->pipeline.count = player_mesh.count;
+		player_drawable->transform = player.transform;
+	}
+	else {
+		Mesh const& player_mesh = phonebank_meshes->lookup("Player_right");
+		player_drawable->pipeline.type = player_mesh.type;
+		player_drawable->pipeline.start = player_mesh.start;
+		player_drawable->pipeline.count = player_mesh.count;
+		player_drawable->transform = player.transform;
+	}
+}
+
 PlayMode::PlayMode() : scene(*phonebank_scene) {
+	for (auto& transform : scene.transforms) {
+		if (transform.name == "Player_right") player.transform = &transform;
+	}
+	for (player_drawable = scene.drawables.begin(); player_drawable != scene.drawables.end(); player_drawable++) {
+		if (player_drawable->transform->name == "Player_left") {
+			break;
+		}
+	}
+	scene.drawables.erase(player_drawable);
+	for (player_drawable = scene.drawables.begin(); player_drawable != scene.drawables.end(); player_drawable++) {
+		if (player_drawable->transform->name == "Player_right") {
+			break;
+		}
+	}
+	
+	if (player.transform == nullptr) throw std::runtime_error("player not found.");
 	//create a player transform:
-	scene.transforms.emplace_back();
-	player.transform = &scene.transforms.back();
+	//scene.transforms.emplace_back();
+	//player.transform = &scene.transforms.back();
 
 	//create a player camera attached to a child of the player transform:
 	scene.transforms.emplace_back();
@@ -58,12 +92,13 @@ PlayMode::PlayMode() : scene(*phonebank_scene) {
 	player.camera->transform->parent = player.transform;
 
 	//player's eyes are 1.8 units above the ground:
-	player.camera->transform->position = glm::vec3(0.0f, 0.0f, 1.8f);
+	//player.camera->transform->position = glm::vec3(0.0f, 0.0f, 1.8f);
 
-	//player.camera->transform->position = glm::vec3(0.0f, -5.0f, 3.0f);
+	player.camera->transform->position = glm::vec3(0.0f, -5.0f, 4.0f);
 
 	//rotate camera facing direction (-z) to player facing direction (+y):
-	player.camera->transform->rotation = glm::angleAxis(glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+	player.camera->transform->rotation = glm::angleAxis(glm::radians(75.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+
 	//start player walking at nearest walk point:
 	player.at = walkmesh->nearest_walk_point(player.transform->position);
 
@@ -154,7 +189,7 @@ void PlayMode::update(float elapsed) {
 	//player walking:
 	{
 		//combine inputs into a move:
-		constexpr float PlayerSpeed = 3.0f;
+		constexpr float PlayerSpeed = 30.0f;
 		glm::vec2 move = glm::vec2(0.0f);
 		if (left.pressed && !curr_moved) {
 			curr_moved = true;
@@ -165,6 +200,7 @@ void PlayMode::update(float elapsed) {
 				move.y = 1.0f;
 			}
 			is_prev_left = !is_prev_left;
+			switch_foot();
 
 		}
 		if (right.pressed && !curr_moved) {
@@ -176,6 +212,8 @@ void PlayMode::update(float elapsed) {
 				move.y = 1.0f;
 			}
 			is_prev_left = !is_prev_left;
+			switch_foot();
+
 		}
 		//if (left.pressed && !right.pressed) move.x = -1.0f;
 		//if (!left.pressed && right.pressed) move.x = 1.0f;
@@ -212,7 +250,6 @@ void PlayMode::update(float elapsed) {
 				remain = rotation * remain;
 			}
 			else {
-				std::cout << "Wall" << std::endl;
 				//ran into a wall, bounce / slide along it:
 				glm::vec3 const& a = walkmesh->vertices[player.at.indices.x];
 				glm::vec3 const& b = walkmesh->vertices[player.at.indices.y];
