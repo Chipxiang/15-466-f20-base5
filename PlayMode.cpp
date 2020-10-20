@@ -107,7 +107,11 @@ void PlayMode::switch_foot() {
 PlayMode::PlayMode() : scene(*phonebank_scene) {
 	std::string const destination_prefix = "Destination";
 	for (auto& transform : scene.transforms) {
-		if (transform.name == "Player_right") player.transform = &transform;
+		if (transform.name == "Player_right") {
+			player.transform = &transform;
+			player_start_position = glm::vec3(player.transform->position.x, player.transform->position.y, player.transform->position.z);
+			player_start_rotation = glm::quat(player.transform->rotation.x, player.transform->rotation.y, player.transform->rotation.z, player.transform->rotation.w);
+		}
 		if (transform.name.find(destination_prefix) == 0) {
 			destinations.push_back(&transform);
 			std::cout << transform.name << std::endl;
@@ -167,9 +171,25 @@ PlayMode::PlayMode() : scene(*phonebank_scene) {
 
 PlayMode::~PlayMode() {
 }
+void PlayMode::reset() {
+	gameover = false;
+	player.transform->position = player_start_position;
+	player.transform->rotation = player_start_rotation;
+	player.at = walkmesh->nearest_walk_point(player.transform->position);
 
+	time = max_time;
+	score = 0;
+	bool curr_moved = false;
+	bool is_delivering = false;
+	bool gameover = false;
+	bool is_picked_up = true;
+}
 bool PlayMode::handle_event(SDL_Event const& evt, glm::uvec2 const& window_size) {
-
+	if (gameover) {
+		if (evt.type == SDL_KEYDOWN && evt.key.keysym.sym == SDLK_SPACE) {
+			reset();
+		}
+	}
 	if (evt.type == SDL_KEYDOWN) {
 		if (evt.key.keysym.sym == SDLK_ESCAPE) {
 			SDL_SetRelativeMouseMode(SDL_FALSE);
@@ -262,6 +282,11 @@ bool PlayMode::handle_event(SDL_Event const& evt, glm::uvec2 const& window_size)
 }
 
 void PlayMode::update(float elapsed) {
+	if (time <= 0.0f) {
+		gameover = true;
+		time = 0.0f;
+		return;
+	}
 	time -= elapsed;
 	static std::mt19937 mt;
 	//update pointer
@@ -438,12 +463,19 @@ void PlayMode::draw(glm::uvec2 const& drawable_size) {
 		));
 
 		constexpr float H = 0.09f;
-		lines.draw_text("Score: " + std::to_string(score) + "    Time: " + std::to_string((int)time) + "." + std::to_string((int)(time * 10) % 10),
+		std::string text_to_draw;
+		if (!gameover) {
+			text_to_draw = "Score: " + std::to_string(score) + "    Time: " + std::to_string((int)time) + "." + std::to_string((int)(time * 10) % 10);
+		}
+		if (gameover) {
+			text_to_draw = "Final Score: " + std::to_string(score) + "    Game Over, Press Space to restart.";
+		}
+		lines.draw_text(text_to_draw,
 			glm::vec3(-aspect + 0.1f * H, -1.0 + 0.1f * H, 0.0),
 			glm::vec3(H, 0.0f, 0.0f), glm::vec3(0.0f, H, 0.0f),
 			glm::u8vec4(0x00, 0x00, 0x00, 0x00));
 		float ofs = 2.0f / drawable_size.y;
-		lines.draw_text("Score: " + std::to_string(score) + "    Time: " + std::to_string((int)time) + "." + std::to_string((int)(time * 10) % 10),
+		lines.draw_text(text_to_draw,
 			glm::vec3(-aspect + 0.1f * H + ofs, -1.0 + +0.1f * H + ofs, 0.0),
 			glm::vec3(H, 0.0f, 0.0f), glm::vec3(0.0f, H, 0.0f),
 			glm::u8vec4(0xff, 0xff, 0xff, 0x00));
