@@ -118,10 +118,14 @@ PlayMode::PlayMode() : scene(*phonebank_scene) {
 		}
 		if (transform.name.find(destination_prefix) == 0) {
 			destinations.push_back(&transform);
-			std::cout << transform.name << std::endl;
 		}
 		if (transform.name == "Pointer") {
 			pointer_transform = &transform;
+		}
+	}
+	for (auto& transform : scene.transforms) {
+		if (transform.name.find(destination_prefix) == 0) {
+			destinations[std::stoi(transform.name.substr(transform.name.length() - 3)) - 1] = &transform;
 		}
 	}
 	for (player_drawable = scene.drawables.begin(); player_drawable != scene.drawables.end(); player_drawable++) {
@@ -439,7 +443,7 @@ void PlayMode::update(float elapsed) {
 	down.downs = 0;
 
 	if (is_delivering) {
-		goods_drawable->transform->position -= elapsed * deliver_up_vec;
+		goods_drawable->transform->position -= elapsed * deliver_up_vec * 2.0f;
 		if (glm::distance(goods_drawable->transform->position, destinations[color]->position) < 0.1f) {
 			is_delivering = false;
 			is_picked_up = false;
