@@ -2,6 +2,8 @@
 
 #include "Scene.hpp"
 #include "WalkMesh.hpp"
+#include "Sound.hpp"
+
 
 #include <glm/glm.hpp>
 
@@ -18,7 +20,8 @@ struct PlayMode : Mode {
 	virtual void draw(glm::uvec2 const &drawable_size) override;
 
 	//----- game state -----
-
+	float time = 120.0f;
+	int score = 0;
 	//input tracking:
 	struct Button {
 		uint8_t downs = 0;
@@ -26,7 +29,15 @@ struct PlayMode : Mode {
 	} left, right, down, up;
 	bool is_prev_left = false;
 	bool curr_moved = false;
-	void PlayMode::switch_foot();
+	bool is_delivering = false;
+	glm::vec3 deliver_up_vec;
+	bool is_picked_up = true;
+	int color = 0;
+	void switch_foot();
+
+	glm::vec3 const spawn_position = glm::vec3(0.0f, 0.0f, 1.0f);
+
+	void spawn_goods();
 
 	std::list<Scene::Drawable>::iterator player_drawable;
 	std::list<Scene::Drawable>::iterator goods_drawable;
@@ -45,4 +56,5 @@ struct PlayMode : Mode {
 		Scene::Camera *camera = nullptr;
 	} player;
 	Scene::Transform* pointer_transform = nullptr;
+	std::shared_ptr<Sound::PlayingSample> bgm_loop;
 };

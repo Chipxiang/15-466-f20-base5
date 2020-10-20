@@ -7,17 +7,55 @@
 #include "Load.hpp"
 #include "gl_errors.hpp"
 #include "data_path.hpp"
+#include "Sound.hpp"
 
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/quaternion.hpp>
 
 #include <random>
 
+#if defined(_WIN32)
+#include <filesystem>
+#else
+#include <dirent.h>
+#endif
+
 GLuint phonebank_meshes_for_lit_color_texture_program = 0;
 Load< MeshBuffer > phonebank_meshes(LoadTagDefault, []() -> MeshBuffer const* {
 	MeshBuffer const* ret = new MeshBuffer(data_path("phone-bank.pnct"));
 	phonebank_meshes_for_lit_color_texture_program = ret->make_vao_for_program(lit_color_texture_program->program);
 	return ret;
+	});
+
+Load< std::map<std::string, Sound::Sample>> sound_samples(LoadTagDefault, []() -> std::map<std::string, Sound::Sample> const* {
+	auto map_p = new std::map<std::string, Sound::Sample>();
+	std::string base_dir = data_path("musics");
+
+#if defined(_WIN32)
+	for (const auto& entry : std::filesystem::directory_iterator(base_dir)) {
+		std::string path_string = entry.path().string();
+		std::string file_name = entry.path().filename().string();
+#else
+	struct dirent* entry;
+	DIR* dp;
+
+	dp = opendir(&base_dir[0]);
+	if (dp == nullptr) {
+		std::cout << "Cannot open " << base_dir << "\n";
+		throw std::runtime_error("Cannot open dir");
+	}
+	while ((entry = readdir(dp))) {
+		std::string path_string = base_dir + "/" + std::string(entry->d_name);
+		std::string file_name = std::string(entry->d_name);
+#endif
+		size_t start = 0;
+		size_t end = file_name.find(".opus");
+
+		if (end != std::string::npos) {
+			map_p->emplace(file_name.substr(start, end), Sound::Sample(path_string));
+		}
+	}
+	return map_p;
 	});
 
 Load< Scene > phonebank_scene(LoadTagDefault, []() -> Scene const* {
@@ -44,8 +82,12 @@ Load< WalkMeshes > phonebank_walkmeshes(LoadTagDefault, []() -> WalkMeshes const
 	return ret;
 	});
 
-
+void PlayMode::spawn_goods() {
+	goods_drawable->transform->position = spawn_position;
+	is_picked_up = false;
+}
 void PlayMode::switch_foot() {
+	Sound::play((*sound_samples).at("walk"));
 	if (is_prev_left) {
 		Mesh const& player_mesh = phonebank_meshes->lookup("Player_left");
 		player_drawable->pipeline.type = player_mesh.type;
@@ -97,8 +139,7 @@ PlayMode::PlayMode() : scene(*phonebank_scene) {
 
 	// Set pointer on player's head
 	pointer_transform->position = player.transform->make_local_to_world() * glm::vec4(0.0f, 0.0f, 5.0f, 0.0f) + player.transform->position;
-	goods_drawable->transform->parent = player.transform;
-	goods_drawable->transform->position = glm::vec3(0, 0, 3);
+	goods_drawable->transform->position = player.transform->make_local_to_world() * glm::vec4(0.0f, 0.0f, 2.0f, 0.0f) + player.transform->position;
 
 
 	//create a player camera attached to a child of the player transform:
@@ -120,7 +161,8 @@ PlayMode::PlayMode() : scene(*phonebank_scene) {
 
 	//start player walking at nearest walk point:
 	player.at = walkmesh->nearest_walk_point(player.transform->position);
-
+	bgm_loop = Sound::loop((*sound_samples).at("bit_bit_loop"));
+	bgm_loop->set_volume(0.3f);
 }
 
 PlayMode::~PlayMode() {
@@ -153,10 +195,21 @@ bool PlayMode::handle_event(SDL_Event const& evt, glm::uvec2 const& window_size)
 			down.pressed = true;
 			return true;
 		}
-		else if (evt.key.keysym.sym == SDLK_SPACE && glm::distance(player.transform->position, destinations[0]->position) < valid_distance) {
-			goods_drawable->transform->parent = destinations[0];
-			goods_drawable->transform->position = glm::vec3(0.0f, 0.0f, 2.0f);
+		else if (evt.key.keysym.sym == SDLK_SPACE) {
+			if (is_picked_up && !is_delivering && glm::distance(player.transform->position, destinations[color]->position) < valid_distance) {
+				deliver_up_vec = player.transform->make_local_to_world() * glm::vec4(0.0f, 0.0f, 1.0f, 0.0f);
+				goods_drawable->transform->parent = nullptr;
+				goods_drawable->transform->position = 2.0f * deliver_up_vec + destinations[color]->position;
+				is_delivering = true;
+				Sound::play((*sound_samples).at("confirm"));
+				score++;
+			}
+			if (!is_picked_up && !is_delivering && glm::distance(player.transform->position, spawn_position) < valid_distance) {
+				is_picked_up = true;
+				Sound::play((*sound_samples).at("select"));
+			}
 		}
+
 	}
 	else if (evt.type == SDL_KEYUP) {
 		if (evt.key.keysym.sym == SDLK_a) {
@@ -209,11 +262,17 @@ bool PlayMode::handle_event(SDL_Event const& evt, glm::uvec2 const& window_size)
 }
 
 void PlayMode::update(float elapsed) {
+	time -= elapsed;
+	static std::mt19937 mt;
 	//update pointer
 	pointer_transform->position = player.transform->make_local_to_world() * glm::vec4(0.0f, 0.0f, 4.0f, 0.0f) + player.transform->position;
-	pointer_transform->rotation = glm::quatLookAt(-glm::normalize(destinations[0]->position - pointer_transform->position), glm::vec3(0, 0, 1));
-	//goods_drawable->transform->position = player.transform->make_local_to_world() * glm::vec4(0.0f, 0.0f, 3.0f, 0.0f) + player.transform->position;
 
+	if (is_picked_up) {
+		pointer_transform->rotation = glm::quatLookAt(-glm::normalize(destinations[color]->position - pointer_transform->position), glm::vec3(0, 0, 1));
+	}
+	else {
+		pointer_transform->rotation = glm::quatLookAt(-glm::normalize(spawn_position - pointer_transform->position), glm::vec3(0, 0, 1));
+	}
 	//player walking:
 	{
 		//combine inputs into a move:
@@ -331,10 +390,19 @@ void PlayMode::update(float elapsed) {
 	up.downs = 0;
 	down.downs = 0;
 
-	if (goods_drawable->transform->parent != nullptr && goods_drawable->transform->parent != player.transform) {
-		goods_drawable->transform->position -= glm::vec3(0, 0, 1.0f * elapsed);
+	if (is_delivering) {
+		goods_drawable->transform->position -= elapsed * deliver_up_vec;
+		if (glm::distance(goods_drawable->transform->position, destinations[color]->position) < 0.1f) {
+			is_delivering = false;
+			is_picked_up = false;
+			std::uniform_int_distribution<int> color_rand(0, (int)destinations.size() - 1);
+			color = color_rand(mt);
+			spawn_goods();
+		}
 	}
-
+	else if (is_picked_up) {
+		goods_drawable->transform->position = player.transform->make_local_to_world() * glm::vec4(0.0f, 0.0f, 3.0f, 0.0f) + player.transform->position;
+	}
 
 }
 
@@ -370,12 +438,12 @@ void PlayMode::draw(glm::uvec2 const& drawable_size) {
 		));
 
 		constexpr float H = 0.09f;
-		lines.draw_text("Mouse motion looks; WASD moves; escape ungrabs mouse",
+		lines.draw_text("Score: " + std::to_string(score) + "    Time: " + std::to_string((int)time) + "." + std::to_string((int)(time * 10) % 10),
 			glm::vec3(-aspect + 0.1f * H, -1.0 + 0.1f * H, 0.0),
 			glm::vec3(H, 0.0f, 0.0f), glm::vec3(0.0f, H, 0.0f),
 			glm::u8vec4(0x00, 0x00, 0x00, 0x00));
 		float ofs = 2.0f / drawable_size.y;
-		lines.draw_text("Mouse motion looks; WASD moves; escape ungrabs mouse",
+		lines.draw_text("Score: " + std::to_string(score) + "    Time: " + std::to_string((int)time) + "." + std::to_string((int)(time * 10) % 10),
 			glm::vec3(-aspect + 0.1f * H + ofs, -1.0 + +0.1f * H + ofs, 0.0),
 			glm::vec3(H, 0.0f, 0.0f), glm::vec3(0.0f, H, 0.0f),
 			glm::u8vec4(0xff, 0xff, 0xff, 0x00));
