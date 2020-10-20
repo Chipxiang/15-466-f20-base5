@@ -20,7 +20,7 @@ struct PlayMode : Mode {
 	virtual void draw(glm::uvec2 const &drawable_size) override;
 
 	//----- game state -----
-	float const max_time = 60.0f;
+	float const max_time = 100.0f;
 	float time = max_time;
 	int score = 0;
 	//input tracking:
@@ -51,7 +51,7 @@ struct PlayMode : Mode {
 	//local copy of the game scene (so code can change it during gameplay):
 	Scene scene;
 
-	//player info:
+	//player info:Í
 	struct Player {
 		WalkPoint at;
 		//transform is at player's feet and will be yawed by mouse left/right motion:
@@ -60,7 +60,7 @@ struct PlayMode : Mode {
 		Scene::Camera *camera = nullptr;
 	} player;
 	Scene::Transform* pointer_transform = nullptr;
-	static constexpr float PlayerSpeed = 15.0f;
+	static constexpr float PlayerSpeed = 30.0f;
 
 	std::shared_ptr<Sound::PlayingSample> bgm_loop;
 };

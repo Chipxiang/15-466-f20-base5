@@ -233,16 +233,16 @@ bool PlayMode::handle_event(SDL_Event const& evt, glm::uvec2 const& window_size)
 			right.pressed = true;
 			return true;
 		}
-		else if (evt.key.keysym.sym == SDLK_w) {
-			up.downs += 1;
-			up.pressed = true;
-			return true;
-		}
-		else if (evt.key.keysym.sym == SDLK_s) {
-			down.downs += 1;
-			down.pressed = true;
-			return true;
-		}
+//		else if (evt.key.keysym.sym == SDLK_w) {
+//			up.downs += 1;
+//			up.pressed = true;
+//			return true;
+//		}
+//		else if (evt.key.keysym.sym == SDLK_s) {
+//			down.downs += 1;
+//			down.pressed = true;
+//			return true;
+//		}
 		else if (evt.key.keysym.sym == SDLK_SPACE) {
 			if (is_picked_up && !is_delivering && glm::distance(player.transform->position, destinations[color]->position) < valid_distance) {
 				deliver_up_vec = player.transform->make_local_to_world() * glm::vec4(0.0f, 0.0f, 1.0f, 0.0f);
