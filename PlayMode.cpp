@@ -92,15 +92,29 @@ void PlayMode::spawn_goods() {
 }
 void PlayMode::switch_foot() {
 	Sound::play((*sound_samples).at("walk"));
-	if (is_prev_left) {
+	if (is_prev_left && !is_picked_up ) {
 		Mesh const& player_mesh = phonebank_meshes->lookup("Player_left");
 		player_drawable->pipeline.type = player_mesh.type;
 		player_drawable->pipeline.start = player_mesh.start;
 		player_drawable->pipeline.count = player_mesh.count;
 		player_drawable->transform = player.transform;
 	}
-	else {
+	else if (!is_prev_left && !is_picked_up) {
 		Mesh const& player_mesh = phonebank_meshes->lookup("Player_right");
+		player_drawable->pipeline.type = player_mesh.type;
+		player_drawable->pipeline.start = player_mesh.start;
+		player_drawable->pipeline.count = player_mesh.count;
+		player_drawable->transform = player.transform;
+	}
+	else if (is_prev_left && is_picked_up) {
+		Mesh const& player_mesh = phonebank_meshes->lookup("Player_left_hand_up");
+		player_drawable->pipeline.type = player_mesh.type;
+		player_drawable->pipeline.start = player_mesh.start;
+		player_drawable->pipeline.count = player_mesh.count;
+		player_drawable->transform = player.transform;
+	}
+	else if (!is_prev_left && is_picked_up) {
+		Mesh const& player_mesh = phonebank_meshes->lookup("Player_right_hand_up");
 		player_drawable->pipeline.type = player_mesh.type;
 		player_drawable->pipeline.start = player_mesh.start;
 		player_drawable->pipeline.count = player_mesh.count;
@@ -139,6 +153,18 @@ PlayMode::PlayMode() : scene(*phonebank_scene) {
 			break;
 		}
 	}
+	scene.drawables.erase(player_drawable);
+	for (player_drawable = scene.drawables.begin(); player_drawable != scene.drawables.end(); player_drawable++) {
+		if (player_drawable->transform->name == "Player_left_hand_up") {
+			break;
+		}
+	}
+	scene.drawables.erase(player_drawable);
+	for (player_drawable = scene.drawables.begin(); player_drawable != scene.drawables.end(); player_drawable++) {
+		if (player_drawable->transform->name == "Player_right_hand_up") {
+			break;
+		}
+	}
 	std::string const goods_prefix = "Goods";
 	std::list<Scene::Drawable>::iterator it;
 	for (it = scene.drawables.begin(); it != scene.drawables.end(); it++) {
@@ -148,6 +174,7 @@ PlayMode::PlayMode() : scene(*phonebank_scene) {
 		}
 	}
 	std::cout << goods_drawable->transform->name << std::endl;
+	goods_drawable->transform->scale *= 4.0f;
 	bool found = true;
 	while (found) {
 		found = false;
@@ -171,7 +198,7 @@ PlayMode::PlayMode() : scene(*phonebank_scene) {
 
 	// Set pointer on player's head
 	pointer_transform->position = player.transform->make_local_to_world() * glm::vec4(0.0f, 0.0f, 5.0f, 0.0f) + player.transform->position;
-	goods_drawable->transform->position = player.transform->make_local_to_world() * glm::vec4(0.0f, 0.0f, 2.0f, 0.0f) + player.transform->position;
+	goods_drawable->transform->position = player.transform->make_local_to_world() * glm::vec4(0.0f, 0.0f, 5.0f, 0.0f) + player.transform->position;
 
 
 	//create a player camera attached to a child of the player transform:
@@ -195,6 +222,7 @@ PlayMode::PlayMode() : scene(*phonebank_scene) {
 	player.at = walkmesh->nearest_walk_point(player.transform->position);
 	bgm_loop = Sound::loop((*sound_samples).at("bit_bit_loop"));
 	bgm_loop->set_volume(0.3f);
+	switch_foot();
 }
 
 PlayMode::~PlayMode() {
@@ -211,6 +239,8 @@ void PlayMode::reset() {
 	is_delivering = false;
 	gameover = false;
 	is_picked_up = true;
+	switch_foot();
+
 }
 bool PlayMode::handle_event(SDL_Event const& evt, glm::uvec2 const& window_size) {
 	if (gameover) {
@@ -233,28 +263,32 @@ bool PlayMode::handle_event(SDL_Event const& evt, glm::uvec2 const& window_size)
 			right.pressed = true;
 			return true;
 		}
-//		else if (evt.key.keysym.sym == SDLK_w) {
-//			up.downs += 1;
-//			up.pressed = true;
-//			return true;
-//		}
-//		else if (evt.key.keysym.sym == SDLK_s) {
-//			down.downs += 1;
-//			down.pressed = true;
-//			return true;
-//		}
+		/*else if (evt.key.keysym.sym == SDLK_w) {
+			up.downs += 1;
+			up.pressed = true;
+			return true;
+		}
+		else if (evt.key.keysym.sym == SDLK_s) {
+			down.downs += 1;
+			down.pressed = true;
+			return true;
+		}*/
 		else if (evt.key.keysym.sym == SDLK_SPACE) {
 			if (is_picked_up && !is_delivering && glm::distance(player.transform->position, destinations[color]->position) < valid_distance) {
 				deliver_up_vec = player.transform->make_local_to_world() * glm::vec4(0.0f, 0.0f, 1.0f, 0.0f);
 				goods_drawable->transform->parent = nullptr;
 				goods_drawable->transform->position = 2.0f * deliver_up_vec + destinations[color]->position;
 				is_delivering = true;
+				is_picked_up = false;
+
 				Sound::play((*sound_samples).at("confirm"));
 				score++;
+				switch_foot();
 			}
 			if (!is_picked_up && !is_delivering && glm::distance(player.transform->position, spawn_position) < valid_distance) {
 				is_picked_up = true;
 				Sound::play((*sound_samples).at("select"));
+				switch_foot();
 			}
 		}
 
@@ -316,9 +350,8 @@ void PlayMode::update(float elapsed) {
 		return;
 	}
 	time -= elapsed;
-	static std::mt19937 mt;
 	//update pointer
-	pointer_transform->position = player.transform->make_local_to_world() * glm::vec4(0.0f, 0.0f, 4.0f, 0.0f) + player.transform->position;
+	pointer_transform->position = player.transform->make_local_to_world() * glm::vec4(0.0f, 0.0f, 4.8f, 0.0f) + player.transform->position;
 
 	if (is_picked_up) {
 		pointer_transform->rotation = glm::quatLookAt(-glm::normalize(destinations[color]->position - pointer_transform->position), glm::vec3(0, 0, 1));
@@ -446,14 +479,15 @@ void PlayMode::update(float elapsed) {
 		goods_drawable->transform->position -= elapsed * deliver_up_vec * 2.0f;
 		if (glm::distance(goods_drawable->transform->position, destinations[color]->position) < 0.1f) {
 			is_delivering = false;
-			is_picked_up = false;
+			std::random_device rd;
+			std::mt19937 mt(rd());
 			std::uniform_int_distribution<int> color_rand(0, (int)destinations.size() - 1);
 			color = color_rand(mt);
 			spawn_goods();
 		}
 	}
 	else if (is_picked_up) {
-		goods_drawable->transform->position = player.transform->make_local_to_world() * glm::vec4(0.0f, 0.0f, 3.0f, 0.0f) + player.transform->position;
+		goods_drawable->transform->position = player.transform->make_local_to_world() * glm::vec4(0.0f, 0.0f, 3.5f, 0.0f) + player.transform->position;
 	}
 
 }
