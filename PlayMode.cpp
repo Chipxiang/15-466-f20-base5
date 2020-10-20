@@ -131,8 +131,9 @@ PlayMode::PlayMode() : scene(*phonebank_scene) {
 			break;
 		}
 	}
+	std::string const goods_prefix = "Destination";
 	for (goods_drawable = scene.drawables.begin(); goods_drawable != scene.drawables.end(); goods_drawable++) {
-		if (goods_drawable->transform->name == "Goods") {
+		if (transform.name.find(goods_prefix) == 0) {
 			break;
 		}
 	}
