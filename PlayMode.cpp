@@ -144,17 +144,16 @@ PlayMode::PlayMode() : scene(*phonebank_scene) {
 		}
 	}
 	std::cout << goods_drawable->transform->name << std::endl;
-	while (it != scene.drawables.end()) {
-		it = goods_drawable;
-		it++;
-		for (; it != scene.drawables.end(); it++) {
-			if (it->transform->name.find(goods_prefix) == 0) {
+	bool found = true;
+	while (found) {
+		found = false;
+		for (it = scene.drawables.begin(); it != scene.drawables.end(); it++) {
+			if (it->transform->name.find(goods_prefix) == 0 && it->transform->name != "Goods.001") {
 				scene.drawables.erase(it);
+				found = true;
 				break;
 			}
 		}
-		std::cout << goods_drawable->transform->name << std::endl;
-
 	}
 	
 	if (player.transform == nullptr) throw std::runtime_error("player not found.");
