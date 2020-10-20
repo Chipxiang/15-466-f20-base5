@@ -118,10 +118,14 @@ PlayMode::PlayMode() : scene(*phonebank_scene) {
 		}
 		if (transform.name.find(destination_prefix) == 0) {
 			destinations.push_back(&transform);
-			std::cout << transform.name << std::endl;
 		}
 		if (transform.name == "Pointer") {
 			pointer_transform = &transform;
+		}
+	}
+	for (auto& transform : scene.transforms) {
+		if (transform.name.find(destination_prefix) == 0) {
+			destinations[std::stoi(transform.name.substr(transform.name.length() - 3)) - 1] = &transform;
 		}
 	}
 	for (player_drawable = scene.drawables.begin(); player_drawable != scene.drawables.end(); player_drawable++) {
