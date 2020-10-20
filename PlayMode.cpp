@@ -443,7 +443,7 @@ void PlayMode::update(float elapsed) {
 	down.downs = 0;
 
 	if (is_delivering) {
-		goods_drawable->transform->position -= elapsed * deliver_up_vec;
+		goods_drawable->transform->position -= elapsed * deliver_up_vec * 2.0f;
 		if (glm::distance(goods_drawable->transform->position, destinations[color]->position) < 0.1f) {
 			is_delivering = false;
 			is_picked_up = false;
