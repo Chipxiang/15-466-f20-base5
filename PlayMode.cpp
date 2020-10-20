@@ -83,11 +83,10 @@ Load< WalkMeshes > phonebank_walkmeshes(LoadTagDefault, []() -> WalkMeshes const
 	});
 
 void PlayMode::spawn_goods() {
-	/*Mesh const& goods_mesh = phonebank_meshes->lookup("Player_left");
-	player_drawable->pipeline.type = goods_mesh.type;
-	player_drawable->pipeline.start = goods_mesh.start;
-	player_drawable->pipeline.count = goods_mesh.count;
-	player_drawable->transform = player.transform;*/
+	Mesh const& goods_mesh = phonebank_meshes->lookup("Goods." + std::to_string(((color + 1)/10) %10) + std::to_string(((color + 1) / 100) % 10) +  std::to_string((color + 1)));
+	goods_drawable->pipeline.type = goods_mesh.type;
+	goods_drawable->pipeline.start = goods_mesh.start;
+	goods_drawable->pipeline.count = goods_mesh.count;
 	goods_drawable->transform->position = spawn_position;
 	is_picked_up = false;
 }
@@ -139,11 +138,12 @@ PlayMode::PlayMode() : scene(*phonebank_scene) {
 	std::string const goods_prefix = "Goods";
 	std::list<Scene::Drawable>::iterator it;
 	for (it = scene.drawables.begin(); it != scene.drawables.end(); it++) {
-		if (it->transform->name.find(goods_prefix) == 0) {
+		if (it->transform->name == "Goods.001") {
 			goods_drawable = it;
 			break;
 		}
 	}
+	std::cout << goods_drawable->transform->name << std::endl;
 	while (it != scene.drawables.end()) {
 		it = goods_drawable;
 		it++;
@@ -153,6 +153,8 @@ PlayMode::PlayMode() : scene(*phonebank_scene) {
 				break;
 			}
 		}
+		std::cout << goods_drawable->transform->name << std::endl;
+
 	}
 	
 	if (player.transform == nullptr) throw std::runtime_error("player not found.");
