@@ -83,6 +83,11 @@ Load< WalkMeshes > phonebank_walkmeshes(LoadTagDefault, []() -> WalkMeshes const
 	});
 
 void PlayMode::spawn_goods() {
+	/*Mesh const& goods_mesh = phonebank_meshes->lookup("Player_left");
+	player_drawable->pipeline.type = goods_mesh.type;
+	player_drawable->pipeline.start = goods_mesh.start;
+	player_drawable->pipeline.count = goods_mesh.count;
+	player_drawable->transform = player.transform;*/
 	goods_drawable->transform->position = spawn_position;
 	is_picked_up = false;
 }
@@ -197,10 +202,10 @@ void PlayMode::reset() {
 
 	time = max_time;
 	score = 0;
-	bool curr_moved = false;
-	bool is_delivering = false;
-	bool gameover = false;
-	bool is_picked_up = true;
+	curr_moved = false;
+	is_delivering = false;
+	gameover = false;
+	is_picked_up = true;
 }
 bool PlayMode::handle_event(SDL_Event const& evt, glm::uvec2 const& window_size) {
 	if (gameover) {
