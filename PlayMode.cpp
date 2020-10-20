@@ -131,12 +131,25 @@ PlayMode::PlayMode() : scene(*phonebank_scene) {
 			break;
 		}
 	}
-	std::string const goods_prefix = "Destination";
-	for (goods_drawable = scene.drawables.begin(); goods_drawable != scene.drawables.end(); goods_drawable++) {
-		if (transform.name.find(goods_prefix) == 0) {
+	std::string const goods_prefix = "Goods";
+	std::list<Scene::Drawable>::iterator it;
+	for (it = scene.drawables.begin(); it != scene.drawables.end(); it++) {
+		if (it->transform->name.find(goods_prefix) == 0) {
+			goods_drawable = it;
 			break;
 		}
 	}
+	while (it != scene.drawables.end()) {
+		it = goods_drawable;
+		it++;
+		for (; it != scene.drawables.end(); it++) {
+			if (it->transform->name.find(goods_prefix) == 0) {
+				scene.drawables.erase(it);
+				break;
+			}
+		}
+	}
+	
 	if (player.transform == nullptr) throw std::runtime_error("player not found.");
 	if (goods_drawable == scene.drawables.end()) throw std::runtime_error("goods not found.");
 	if (pointer_transform == nullptr) throw std::runtime_error("pointer not found.");
