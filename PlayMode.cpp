@@ -85,14 +85,21 @@ PlayMode::PlayMode() : scene(*phonebank_scene) {
 			break;
 		}
 	}
-	
+	for (goods_drawable = scene.drawables.begin(); goods_drawable != scene.drawables.end(); goods_drawable++) {
+		if (goods_drawable->transform->name == "Goods") {
+			break;
+		}
+	}
 	if (player.transform == nullptr) throw std::runtime_error("player not found.");
 	//create a player transform:
 	//scene.transforms.emplace_back();
 	//player.transform = &scene.transforms.back();
 
 	// Set pointer on player's head
-	pointer_transform->position = player.transform->make_local_to_world() * glm::vec4(0.0f, 0.0f, 3.0f, 0.0f) + player.transform->position;
+	pointer_transform->position = player.transform->make_local_to_world() * glm::vec4(0.0f, 0.0f, 5.0f, 0.0f) + player.transform->position;
+	goods_drawable->transform->parent = player.transform;
+	goods_drawable->transform->position = glm::vec3(0, 0, 3);
+
 
 	//create a player camera attached to a child of the player transform:
 	scene.transforms.emplace_back();
@@ -145,6 +152,10 @@ bool PlayMode::handle_event(SDL_Event const& evt, glm::uvec2 const& window_size)
 			down.downs += 1;
 			down.pressed = true;
 			return true;
+		}
+		else if (evt.key.keysym.sym == SDLK_SPACE && glm::distance(player.transform->position, destinations[0]->position) < valid_distance) {
+			goods_drawable->transform->parent = destinations[0];
+			goods_drawable->transform->position = glm::vec3(0.0f, 0.0f, 2.0f);
 		}
 	}
 	else if (evt.type == SDL_KEYUP) {
@@ -199,8 +210,9 @@ bool PlayMode::handle_event(SDL_Event const& evt, glm::uvec2 const& window_size)
 
 void PlayMode::update(float elapsed) {
 	//update pointer
-	pointer_transform->position = player.transform->make_local_to_world() * glm::vec4(0.0f, 0.0f, 3.0f, 0.0f) + player.transform->position;
-	pointer_transform->rotation = glm::quatLookAt(-glm::normalize(destinations[0]->position - player.transform->position), glm::vec3(0, 0, 1));
+	pointer_transform->position = player.transform->make_local_to_world() * glm::vec4(0.0f, 0.0f, 4.0f, 0.0f) + player.transform->position;
+	pointer_transform->rotation = glm::quatLookAt(-glm::normalize(destinations[0]->position - pointer_transform->position), glm::vec3(0, 0, 1));
+	//goods_drawable->transform->position = player.transform->make_local_to_world() * glm::vec4(0.0f, 0.0f, 3.0f, 0.0f) + player.transform->position;
 
 	//player walking:
 	{
@@ -318,6 +330,12 @@ void PlayMode::update(float elapsed) {
 	right.downs = 0;
 	up.downs = 0;
 	down.downs = 0;
+
+	if (goods_drawable->transform->parent != nullptr && goods_drawable->transform->parent != player.transform) {
+		goods_drawable->transform->position -= glm::vec3(0, 0, 1.0f * elapsed);
+	}
+
+
 }
 
 void PlayMode::draw(glm::uvec2 const& drawable_size) {

@@ -27,8 +27,12 @@ struct PlayMode : Mode {
 	bool is_prev_left = false;
 	bool curr_moved = false;
 	void PlayMode::switch_foot();
+
 	std::list<Scene::Drawable>::iterator player_drawable;
+	std::list<Scene::Drawable>::iterator goods_drawable;
+
 	std::vector<Scene::Transform*> destinations;
+	float valid_distance = 3.0f;
 	//local copy of the game scene (so code can change it during gameplay):
 	Scene scene;
 
