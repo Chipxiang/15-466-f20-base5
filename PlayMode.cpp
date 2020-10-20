@@ -63,8 +63,16 @@ void PlayMode::switch_foot() {
 }
 
 PlayMode::PlayMode() : scene(*phonebank_scene) {
+	std::string const destination_prefix = "Destination";
 	for (auto& transform : scene.transforms) {
 		if (transform.name == "Player_right") player.transform = &transform;
+		if (transform.name.find(destination_prefix) == 0) {
+			destinations.push_back(&transform);
+			std::cout << transform.name << std::endl;
+		}
+		if (transform.name == "Pointer") {
+			pointer_transform = &transform;
+		}
 	}
 	for (player_drawable = scene.drawables.begin(); player_drawable != scene.drawables.end(); player_drawable++) {
 		if (player_drawable->transform->name == "Player_left") {
@@ -83,6 +91,9 @@ PlayMode::PlayMode() : scene(*phonebank_scene) {
 	//scene.transforms.emplace_back();
 	//player.transform = &scene.transforms.back();
 
+	// Set pointer on player's head
+	pointer_transform->position = player.transform->make_local_to_world() * glm::vec4(0.0f, 0.0f, 3.0f, 0.0f) + player.transform->position;
+
 	//create a player camera attached to a child of the player transform:
 	scene.transforms.emplace_back();
 	scene.cameras.emplace_back(&scene.transforms.back());
@@ -90,6 +101,7 @@ PlayMode::PlayMode() : scene(*phonebank_scene) {
 	player.camera->fovy = glm::radians(60.0f);
 	player.camera->near = 0.01f;
 	player.camera->transform->parent = player.transform;
+
 
 	//player's eyes are 1.8 units above the ground:
 	//player.camera->transform->position = glm::vec3(0.0f, 0.0f, 1.8f);
@@ -186,10 +198,14 @@ bool PlayMode::handle_event(SDL_Event const& evt, glm::uvec2 const& window_size)
 }
 
 void PlayMode::update(float elapsed) {
+	//update pointer
+	pointer_transform->position = player.transform->make_local_to_world() * glm::vec4(0.0f, 0.0f, 3.0f, 0.0f) + player.transform->position;
+	pointer_transform->rotation = glm::quatLookAt(-glm::normalize(destinations[0]->position - player.transform->position), glm::vec3(0, 0, 1));
+
 	//player walking:
 	{
 		//combine inputs into a move:
-		constexpr float PlayerSpeed = 30.0f;
+		constexpr float PlayerSpeed = 5.0f;
 		glm::vec2 move = glm::vec2(0.0f);
 		if (left.pressed && !curr_moved) {
 			curr_moved = true;
