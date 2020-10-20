@@ -20,7 +20,7 @@ struct PlayMode : Mode {
 	virtual void draw(glm::uvec2 const &drawable_size) override;
 
 	//----- game state -----
-	float const max_time = 30.0f;
+	float const max_time = 60.0f;
 	float time = max_time;
 	int score = 0;
 	//input tracking:
@@ -60,5 +60,7 @@ struct PlayMode : Mode {
 		Scene::Camera *camera = nullptr;
 	} player;
 	Scene::Transform* pointer_transform = nullptr;
+	static constexpr float PlayerSpeed = 15.0f;
+
 	std::shared_ptr<Sound::PlayingSample> bgm_loop;
 };
