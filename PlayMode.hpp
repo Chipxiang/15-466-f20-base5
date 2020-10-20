@@ -26,6 +26,9 @@ struct PlayMode : Mode {
 	} left, right, down, up;
 	bool is_prev_left = false;
 	bool curr_moved = false;
+	void PlayMode::switch_foot();
+	std::list<Scene::Drawable>::iterator player_drawable;
+	std::vector<Scene::Transform*> destinations;
 	//local copy of the game scene (so code can change it during gameplay):
 	Scene scene;
 
@@ -37,4 +40,5 @@ struct PlayMode : Mode {
 		//camera is at player's head and will be pitched by mouse up/down motion:
 		Scene::Camera *camera = nullptr;
 	} player;
+	Scene::Transform* pointer_transform = nullptr;
 };

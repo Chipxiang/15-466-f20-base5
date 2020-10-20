@@ -44,10 +44,55 @@ Load< WalkMeshes > phonebank_walkmeshes(LoadTagDefault, []() -> WalkMeshes const
 	return ret;
 	});
 
+
+void PlayMode::switch_foot() {
+	if (is_prev_left) {
+		Mesh const& player_mesh = phonebank_meshes->lookup("Player_left");
+		player_drawable->pipeline.type = player_mesh.type;
+		player_drawable->pipeline.start = player_mesh.start;
+		player_drawable->pipeline.count = player_mesh.count;
+		player_drawable->transform = player.transform;
+	}
+	else {
+		Mesh const& player_mesh = phonebank_meshes->lookup("Player_right");
+		player_drawable->pipeline.type = player_mesh.type;
+		player_drawable->pipeline.start = player_mesh.start;
+		player_drawable->pipeline.count = player_mesh.count;
+		player_drawable->transform = player.transform;
+	}
+}
+
 PlayMode::PlayMode() : scene(*phonebank_scene) {
+	std::string const destination_prefix = "Destination";
+	for (auto& transform : scene.transforms) {
+		if (transform.name == "Player_right") player.transform = &transform;
+		if (transform.name.find(destination_prefix) == 0) {
+			destinations.push_back(&transform);
+			std::cout << transform.name << std::endl;
+		}
+		if (transform.name == "Pointer") {
+			pointer_transform = &transform;
+		}
+	}
+	for (player_drawable = scene.drawables.begin(); player_drawable != scene.drawables.end(); player_drawable++) {
+		if (player_drawable->transform->name == "Player_left") {
+			break;
+		}
+	}
+	scene.drawables.erase(player_drawable);
+	for (player_drawable = scene.drawables.begin(); player_drawable != scene.drawables.end(); player_drawable++) {
+		if (player_drawable->transform->name == "Player_right") {
+			break;
+		}
+	}
+	
+	if (player.transform == nullptr) throw std::runtime_error("player not found.");
 	//create a player transform:
-	scene.transforms.emplace_back();
-	player.transform = &scene.transforms.back();
+	//scene.transforms.emplace_back();
+	//player.transform = &scene.transforms.back();
+
+	// Set pointer on player's head
+	pointer_transform->position = player.transform->make_local_to_world() * glm::vec4(0.0f, 0.0f, 3.0f, 0.0f) + player.transform->position;
 
 	//create a player camera attached to a child of the player transform:
 	scene.transforms.emplace_back();
@@ -57,13 +102,15 @@ PlayMode::PlayMode() : scene(*phonebank_scene) {
 	player.camera->near = 0.01f;
 	player.camera->transform->parent = player.transform;
 
-	//player's eyes are 1.8 units above the ground:
-	player.camera->transform->position = glm::vec3(0.0f, 0.0f, 1.8f);
 
-	//player.camera->transform->position = glm::vec3(0.0f, -5.0f, 3.0f);
+	//player's eyes are 1.8 units above the ground:
+	//player.camera->transform->position = glm::vec3(0.0f, 0.0f, 1.8f);
+
+	player.camera->transform->position = glm::vec3(0.0f, -5.0f, 4.0f);
 
 	//rotate camera facing direction (-z) to player facing direction (+y):
-	player.camera->transform->rotation = glm::angleAxis(glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+	player.camera->transform->rotation = glm::angleAxis(glm::radians(75.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+
 	//start player walking at nearest walk point:
 	player.at = walkmesh->nearest_walk_point(player.transform->position);
 
@@ -151,10 +198,14 @@ bool PlayMode::handle_event(SDL_Event const& evt, glm::uvec2 const& window_size)
 }
 
 void PlayMode::update(float elapsed) {
+	//update pointer
+	pointer_transform->position = player.transform->make_local_to_world() * glm::vec4(0.0f, 0.0f, 3.0f, 0.0f) + player.transform->position;
+	pointer_transform->rotation = glm::quatLookAt(-glm::normalize(destinations[0]->position - player.transform->position), glm::vec3(0, 0, 1));
+
 	//player walking:
 	{
 		//combine inputs into a move:
-		constexpr float PlayerSpeed = 3.0f;
+		constexpr float PlayerSpeed = 5.0f;
 		glm::vec2 move = glm::vec2(0.0f);
 		if (left.pressed && !curr_moved) {
 			curr_moved = true;
@@ -165,6 +216,7 @@ void PlayMode::update(float elapsed) {
 				move.y = 1.0f;
 			}
 			is_prev_left = !is_prev_left;
+			switch_foot();
 
 		}
 		if (right.pressed && !curr_moved) {
@@ -176,6 +228,8 @@ void PlayMode::update(float elapsed) {
 				move.y = 1.0f;
 			}
 			is_prev_left = !is_prev_left;
+			switch_foot();
+
 		}
 		//if (left.pressed && !right.pressed) move.x = -1.0f;
 		//if (!left.pressed && right.pressed) move.x = 1.0f;
@@ -212,7 +266,6 @@ void PlayMode::update(float elapsed) {
 				remain = rotation * remain;
 			}
 			else {
-				std::cout << "Wall" << std::endl;
 				//ran into a wall, bounce / slide along it:
 				glm::vec3 const& a = walkmesh->vertices[player.at.indices.x];
 				glm::vec3 const& b = walkmesh->vertices[player.at.indices.y];
