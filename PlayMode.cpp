@@ -137,6 +137,10 @@ PlayMode::PlayMode() : scene(*phonebank_scene) {
 		}
 	}
 	if (player.transform == nullptr) throw std::runtime_error("player not found.");
+	if (goods_drawable == scene.drawables.end()) throw std::runtime_error("goods not found.");
+	if (pointer_transform == nullptr) throw std::runtime_error("pointer not found.");
+	if (destinations.size() == 0) throw std::runtime_error("destinations not found.");
+
 	//create a player transform:
 	//scene.transforms.emplace_back();
 	//player.transform = &scene.transforms.back();
